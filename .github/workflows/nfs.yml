@@ -10,6 +10,7 @@ jobs:
             manifestFile: ./manifest/nfs-server/nfs-server.yml
             dockerDir: "nfs-server"
             name: kigawa-net-nfs-server
+            harborProject: "library"
     runs-on: ubuntu-latest
     env:
       preDockerBuildCmd: ""
@@ -45,7 +46,7 @@ jobs:
           context: ${{ env.dir }}
           file: ${{ env.dir }}/${{ env.dockerFile }}
           push: true
-          tags: harbor.kigawa.net/private/${{ env.name }}:${{ github.ref_name }}-${{ github.sha }}
+          tags: harbor.kigawa.net/${{ matrix.branch.harborProject }}/${{ env.name }}:${{ github.ref_name }}-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: ${{ env.dockerArg }}
@@ -63,7 +64,7 @@ jobs:
 #      - name: Update YAML File
 #        if: github.ref == matrix.branch.ref
 #        run: |
-#          yq -i '.spec.template.spec.containers[0].image = "harbor.kigawa.net/private/${{ env.name }}:${{ github.ref_name }}-${{ github.sha }}"' \
+#          yq -i '.spec.template.spec.containers[0].image = "harbor.kigawa.net/${{ matrix.branch.harborProject }}/${{ env.name }}:${{ github.ref_name }}-${{ github.sha }}"' \
 #          ${{ env.manifestFile }}
 #
 #      - name: push
