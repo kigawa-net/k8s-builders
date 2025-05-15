@@ -19,4 +19,4 @@ EXPOSE 2049/tcp
 EXPOSE 20048/tcp
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-CMD ["/exports"]
+CMD []
