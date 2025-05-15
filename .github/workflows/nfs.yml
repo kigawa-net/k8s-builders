@@ -20,6 +20,7 @@ jobs:
       name: ${{ matrix.branch.name }}
       harborUser: robot$kigawa-net
       dir: ${{ matrix.branch.dockerDir }}
+      dockerRepository: harbor.kigawa.net/${{ matrix.branch.harborProject }}
     steps:
       # checkout
       - run: echo ${{ github.ref }} ${{ github.ref == matrix.branch.ref }}
@@ -40,13 +41,27 @@ jobs:
           username: ${{ env.harborUser }}
           password: ${{ secrets.HARBOR_PASS }}
 
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          # list of Docker images to use as base name for tags
+          images: |
+            ${{ env.dockerRepository }}/${{ env.name }}
+          # generate Docker tags based on the following events/attributes
+          #  type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+          tags: |
+            type=raw,value=latest
+            type=ref,event=branch
+            type=sha
+
       - uses: docker/build-push-action@v5
         if: github.ref == matrix.branch.ref
         with:
           context: ${{ env.dir }}
           file: ${{ env.dir }}/${{ env.dockerFile }}
           push: true
-          tags: harbor.kigawa.net/${{ matrix.branch.harborProject }}/${{ env.name }}:${{ github.ref_name }}-${{ github.sha }}
+          tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: ${{ env.dockerArg }}
