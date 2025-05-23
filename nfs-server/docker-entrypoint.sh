@@ -20,6 +20,7 @@ function start()
         fi
         echo "Serving $i"
     done
+    echo $EXPORTS >> /etc/exports
 
     # start rpcbind if it is not started yet
     /usr/sbin/rpcinfo 127.0.0.1 > /dev/null; s=$?
@@ -35,7 +36,7 @@ function start()
 
     /usr/sbin/exportfs -r
     # -G 10 to reduce grace time to 10 seconds (the lowest allowed)
-    /usr/sbin/rpc.nfsd -G 10 -N 2 -V 3
+    /usr/sbin/rpc.nfsd -G 10 -V 3
     /sbin/rpc.statd --no-notify
     echo "NFS started"
 }
