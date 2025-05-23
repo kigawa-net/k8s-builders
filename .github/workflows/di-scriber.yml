@@ -1,0 +1,92 @@
+on:
+  push:
+
+jobs:
+  cd:
+    strategy:
+      matrix:
+        branch:
+          - ref: "refs/heads/di-scriber"
+            manifestFile: ./manifest/di-scriber/di-scriber.yml
+            dockerDir: "di-scriber"
+            name: di-scriber
+            harborProject: "library"
+    runs-on: ubuntu-latest
+    env:
+      preDockerBuildCmd: ""
+      repository: kigawa-net/mc-manifest
+      manifestFile: ${{ matrix.branch.manifestFile }}
+      dockerFile: Dockerfile
+      name: ${{ matrix.branch.name }}
+      harborUser: robot$kigawa-net
+      dir: ${{ matrix.branch.dockerDir }}
+      dockerRepository: harbor.kigawa.net/${{ matrix.branch.harborProject }}
+    steps:
+      # checkout
+      - run: echo ${{ github.ref }} ${{ github.ref == matrix.branch.ref }}
+      - uses: actions/checkout@v4
+        if: github.ref == matrix.branch.ref
+      - name: preBuild
+        if: github.ref == matrix.branch.ref && env.preDockerBuildCmd
+        run: ${{ env.preDockerBuildCmd }}
+
+      # docker
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        if: github.ref == matrix.branch.ref
+      - uses: docker/login-action@v3
+        if: github.ref == matrix.branch.ref
+        with:
+          registry: harbor.kigawa.net
+          username: ${{ env.harborUser }}
+          password: ${{ secrets.HARBOR_PASS }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          # list of Docker images to use as base name for tags
+          images: |
+            ${{ env.dockerRepository }}/${{ env.name }}
+          # generate Docker tags based on the following events/attributes
+          #  type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
+          tags: |
+            type=raw,value=latest
+            type=ref,event=branch
+            type=sha
+
+      - uses: docker/build-push-action@v5
+        if: github.ref == matrix.branch.ref
+        with:
+          context: ${{ env.dir }}
+          file: ${{ env.dir }}/${{ env.dockerFile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: ${{ env.dockerArg }}
+
+
+      # argo
+#      - name: checkout manifest repository
+#        uses: actions/checkout@v3
+#        if: github.ref == matrix.branch.ref
+#        with:
+#          repository: ${{ env.repository }}
+#          ref: main
+#          token: ${{ secrets.GIT_TOKEN }}
+#
+#      - name: Update YAML File
+#        if: github.ref == matrix.branch.ref
+#        run: |
+#          yq -i '.spec.template.spec.containers[0].image = "harbor.kigawa.net/${{ matrix.branch.harborProject }}/${{ env.name }}:${{ github.ref_name }}-${{ github.sha }}"' \
+#          ${{ env.manifestFile }}
+#
+#      - name: push
+#        if: github.ref == matrix.branch.ref
+#        run: |
+#          git config user.name githubActions
+#          git config user.email bot@kigawa.net
+#          git add .
+#          git commit --author=. -m "update rev"
+#          git push

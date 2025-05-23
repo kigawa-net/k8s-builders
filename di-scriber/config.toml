@@ -1,0 +1,29 @@
+[message]
+content = "Press the button and edit the message!"
+
+[message.button]
+label = "Edit"
+missing_role = "You don't have role ({role}) to edit this message!"
+
+[event.ready]
+# name: Bot name
+# id  : Bot ID
+output = "Logged in as {name} (ID: {id})"
+
+
+[command.create]
+name = "create"
+description = "Create an editable message"
+success_message = "Message created!"
+
+[command.create.options]
+role.name = "role"
+role.description = "Role that can edit the message (leave blank for everyone)"
+
+
+[modal.edit]
+title = "Edit message"
+[modal.edit.input]
+label = "New Content"
+placeholder = "Enter new content"
+
